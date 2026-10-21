@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101820">
+<title>PadelScore</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px 16px;
+  font-family: Arial, sans-serif;
+  background: #101820;
+  color: white;
+  text-align: center;
+}
+
+main {
+  max-width: 480px;
+  margin: auto;
+}
+
+h1 {
+  color: #63e6a5;
+  margin-bottom: 6px;
+  font-size: 32px;
+}
+
+.subtitle {
+  color: #b8c8d5;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.panel {
+  background: #202e3a;
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 18px;
+}
+
+.sets {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.score {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.team {
+  padding: 16px 8px;
+  background: #202e3a;
+  border-radius: 18px;
+  min-width: 0;
+}
+
+.team-name {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.points {
+  font-size: clamp(38px, 12vw, 58px);
+  font-weight: bold;
+  margin: 18px 0;
+  min-height: 65px;
+  display: grid;
+  place-items: center;
+}
+
+.games {
+  color: #b8c8d5;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+button {
+  width: 100%;
+  padding: 15px 8px;
+  margin: 6px 0;
+  border: 0;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.add {
+  background: #63e6a5;
+  color: #10251b;
+}
+
+.secondary {
+  background: #344654;
+  color: white;
+}
+
+#message {
+  min-height: 24px;
+  color: #63e6a5;
+  font-weight: bold;
+  margin: 16px 0;
+}
+
+#history {
+  color: #b8c8d5;
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  color: #91a4b3;
+  font-size: 12px;
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+<main>
+  <h1>🎾 PadelScore</h1>
+  <div class="subtitle">
+    SIN TIE-BREAK · SIN LÍMITE DE SETS
+  </div>
+
+  <div class="panel">
+    <div>SETS GANADOS</div>
+    <div class="sets">
+      <span id="sets0">0</span>
+      -
+      <span id="sets1">0</span>
+    </div>
+    <div id="setNumber">Set 1</div>
+  </div>
+
+  <div class="score">
+    <section class="team">
+      <div class="team-name">NOSOTROS</div>
+      <div id="points0" class="points">0</div>
+      <div class="games">
+        Juegos: <span id="games0">0</span>
+      </div>
+      <button class="add" onclick="point(0)">
+        + Punto
+      </button>
+    </section>
+
+    <section class="team">
+      <div class="team-name">RIVALES</div>
+      <div id="points1" class="points">0</div>
+      <div class="games">
+        Juegos: <span id="games1">0</span>
+      </div>
+      <button class="add" onclick="point(1)">
+        + Punto
+      </button>
+    </section>
+  </div>
+
+  <div id="message" aria-live="polite">
+    Partido listo
+  </div>
+
+  <div class="panel">
+    <strong>Historial de sets</strong>
+    <p id="history">Todavía no hay sets terminados</p>
+  </div>
+
+  <button class="secondary" onclick="undo()">
+    ↩ Deshacer último punto
+  </button>
+
+  <button class="secondary" onclick="resetMatch()">
+    Reiniciar partido
+  </button>
+
+  <div class="note">
+    Los sets se ganan con 6 juegos y 2 de diferencia.
+    El partido continúa hasta que decidas reiniciarlo.
+  </div>
+</main>
+
+<script>
+let points = [0, 0];
+let games = [0, 0];
+let sets = [0, 0];
+let setHistory = [];
+let history = [];
+
+function saveState() {
+  history.push({
+    points: [...points],
+    games: [...games],
+    sets: [...sets],
+    setHistory: [...setHistory],
+    message: document.getElementById("message").textContent
+  });
+}
+
+function point(team) {
+  saveState();
+
+  points[team]++;
+
+  // Ganar un juego requiere al menos 4 puntos
+  // y una diferencia de 2 puntos.
+  if (
+    points[team] >= 4 &&
+    points[team] - points[1 - team] >= 2
+  ) {
+    games[team]++;
+    points = [0, 0];
+
+    // Sin tie-break:
+    // se necesitan al menos 6 juegos y 2 de diferencia.
+    if (
+      games[team] >= 6 &&
+      games[team] - games[1 - team] >= 2
+    ) {
+      const result = `${games[0]}-${games[1]}`;
+
+      setHistory.push({
+        result: result,
+        winner: team
+      });
+
+      sets[team]++;
+      games = [0, 0];
+
+      document.getElementById("message").textContent =
+        `¡Set ${result} para ${
+          team === 0 ? "nosotros" : "los rivales"
+        }!`;
+
+    } else {
+      document.getElementById("message").textContent =
+        team === 0
+          ? "¡Juego para nosotros!"
+          : "¡Juego para los rivales!";
+    }
+
+  } else {
+    document.getElementById("message").textContent =
+      "Punto añadido";
+  }
+
+  render();
+}
+
+function pointLabel(team) {
+  const own = points[team];
+  const other = points[1 - team];
+
+  // Sistema de iguales y ventaja.
+  if (own >= 3 && other >= 3) {
+    if (own === other) return "40";
+    if (own > other) return "AD";
+    return "40";
+  }
+
+  return ["0", "15", "30", "40"][own] ?? "40";
+}
+
+function undo() {
+  if (history.length === 0) {
+    document.getElementById("message").textContent =
+      "No hay puntos que deshacer";
+    return;
+  }
+
+  const previous = history.pop();
+
+  points = previous.points;
+  games = previous.games;
+  sets = previous.sets;
+  setHistory = previous.setHistory;
+
+  document.getElementById("message").textContent =
+    previous.message;
+
+  render();
+}
+
+function resetMatch() {
+  const confirmed = confirm(
+    "¿Quieres reiniciar el partido completo? Se borrará el marcador y el historial de sets."
+  );
+
+  if (!confirmed) return;
+
+  points = [0, 0];
+  games = [0, 0];
+  sets = [0, 0];
+  setHistory = [];
+  history = [];
+
+  document.getElementById("message").textContent =
+    "Partido listo";
+
+  render();
+}
+
+function render() {
+  document.getElementById("points0").textContent =
+    pointLabel(0);
+
+  document.getElementById("points1").textContent =
+    pointLabel(1);
+
+  document.getElementById("games0").textContent =
+    games[0];
+
+  document.getElementById("games1").textContent =
+    games[1];
+
+  document.getElementById("sets0").textContent =
+    sets[0];
+
+  document.getElementById("sets1").textContent =
+    sets[1];
+
+  document.getElementById("setNumber").textContent =
+    `Set ${sets[0] + sets[1] + 1}`;
+
+  const historyElement =
+    document.getElementById("history");
+
+  if (setHistory.length === 0) {
+    historyElement.textContent =
+      "Todavía no hay sets terminados";
+  } else {
+    historyElement.innerHTML = setHistory
+      .map((set, index) =>
+        `Set ${index + 1}: ${set.result} — ${
+          set.winner === 0 ? "Nosotros" : "Rivales"
+        }`
+      )
+      .join("<br>");
+  }
+}
+
+render();
+</script>
+</body>
+</html>
