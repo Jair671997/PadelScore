@@ -1,0 +1,29 @@
+
+name: PadelScore - Build check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'watchOS/**'
+      - '.github/workflows/**'
+
+jobs:
+  check:
+    name: Check Swift source
+    runs-on: macos-15
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Check Swift version
+        run: swift --version
+
+      - name: Check source file exists
+        run: test -f watchOS/PadelScoreApp.swift
+
+      - name: Parse Swift source
+        run: swiftc -frontend -parse watchOS/PadelScoreApp.swift
