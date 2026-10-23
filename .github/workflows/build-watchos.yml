@@ -12,15 +12,15 @@ on:
 
 jobs:
   build:
-    name: Generate and build Apple Watch app
+    name: Build Apple Watch app
     runs-on: macos-15
 
     steps:
       - name: Download repository
         uses: actions/checkout@v4
 
-      - name: Check Swift version
-        run: swift --version
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -29,21 +29,21 @@ jobs:
         working-directory: watchOS
         run: xcodegen generate --spec project.yml
 
-      - name: Build for Apple Watch Simulator
+      - name: Build for Apple Watch simulator
+        working-directory: watchOS
         run: |
           xcodebuild \
-            -project watchOS/PadelScore.xcodeproj \
+            -project PadelScore.xcodeproj \
             -scheme PadelScore \
-            -destination 'generic/platform=watchOS Simulator' \
+            -sdk watchsimulator \
             -configuration Debug \
+            -destination 'generic/platform=watchOS Simulator' \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build
-      - name: Package build logs
-        if: always()
+
+      - name: Upload compiled app
         uses: actions/upload-artifact@v4
         with:
-          name: PadelScore-build-logs
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-watchsimulator/
-          if-no-files-found: warn
-        
+          name: PadelScore-watchOS-simulator
+          path: watchOS/build/Build/Products/Debug-watchsimulator/PadelScore.app
